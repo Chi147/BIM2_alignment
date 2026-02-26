@@ -1,0 +1,41 @@
+[
+    {
+        "timestamp": "2026-02-23T10:29:30.473912",
+        "pdf_path": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/S\u00c3_HK\u00c3_TASO 1.KRS.pdf",
+        "ifc_path": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/Asikainen.ifc",
+        "ecc_affine_score": 0.24495595449321791,
+        "ecc_affine_warp": [
+            [
+                1.0430642366409302,
+                0.06866595894098282,
+                -95.47681427001953
+            ],
+            [
+                -0.009565979242324829,
+                1.0111801624298096,
+                -54.955833435058594
+            ]
+        ],
+        "ecc_euclidean_score": 0.25204257092950766,
+        "ecc_euclidean_warp": [
+            [
+                1.0,
+                -5.5631371651543304e-06,
+                0.008126221597194672
+            ],
+            [
+                5.5631371651543304e-06,
+                1.0,
+                -0.018030652776360512
+            ]
+        ],
+        "chamfer_metrics": {
+            "mean_px": 16.93970489501953,
+            "median_px": 6.684999942779541,
+            "p90_px": 44.88502502441406,
+            "within_2px": 0.3641227737779462,
+            "within_5px": 0.4617874736101337,
+            "n_points": 461825
+        }
+    }
+]

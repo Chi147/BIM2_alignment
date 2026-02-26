@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "storeyId": "ifc_storey_express_id",
+  "pairs": [
+    {
+      "ifcAnchorId": "ifc:guid:AAA",
+      "ifc": { "x": 12.3, "y": 4.5 },
+      "plan2d": { "x": 234, "y": 518 }
+    },
+    {
+      "ifcAnchorId": "ifc:guid:BBB",
+      "ifc": { "x": 20.1, "y": 6.2 },
+      "plan2d": { "x": 402, "y": 530 }
+    },
+    {
+      "ifcAnchorId": "ifc:guid:DDD",
+      "ifc": { "x": 28.4, "y": 9.6 },
+      "plan2d": { "x": 550, "y": 620 }
+    },
+    {
+      "ifcAnchorId": "ifc:guid:EEE",
+      "ifc": { "x": 6.2, "y": 10.1 },
+      "plan2d": { "x": 120, "y": 660 }
+    }
+  ]
+}

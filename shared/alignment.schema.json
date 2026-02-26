@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "units": "meters",
+  "ifc": {
+    "file": "model.ifc",
+    "storeys": [
+      {
+        "storeyId": "ifc_storey_express_id",
+        "name": "Level 01",
+        "elevationZ": 0.0
+      }
+    ],
+    "anchors": [
+      {
+        "anchorId": "ifc:guid:3qiZvmxK2cG9uL5aMcnquD",
+        "expressId": 6856,
+        "guid": "3qiZvmxK2cG9uL5aMcnquD",
+        "type": "IFCCOLUMN",
+        "name": "Pilari-003",
+        "tag": "AB",
+        "storeyId": "ifc_storey_express_id",
+        "world": { "x": 12.345, "y": 6.789, "z": 0.0 }
+      }
+    ]
+  }
+}

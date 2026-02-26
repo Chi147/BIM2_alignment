@@ -1,0 +1,16 @@
+
+--- Processing Floor_1 (Z-Index: 0) ---
+RAW pdfplumber: 1237.68 1408.799 1237.919 1409.759
+YOUR stored: (1237.68, 275.03999999999996, 1237.919, 274.0799999999999)
+Analyzing geometry elevations...
+--> Extraction Range: 1.80 to 127.10 (Index: 0)
+   ✅ Done. Score: 0.4719, Mean Error: 1.60px
+
+--- Processing Floor_2 (Z-Index: 1) ---
+RAW pdfplumber: 1590.72 1182.719 1591.919 1183.199
+YOUR stored: (1590.72, 501.1199999999999, 1591.919, 500.6399999999999)
+Analyzing geometry elevations...
+--> Extraction Range: 127.10 to 132.19 (Index: 1)
+   ✅ Done. Score: 0.0378, Mean Error: 91.30px
+
+Final report saved to alignment_debug/alignment_results.json

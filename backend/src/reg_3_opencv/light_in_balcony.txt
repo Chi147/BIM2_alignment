@@ -1,0 +1,4 @@
+--- Click Result ---
+PDF page coords: (1310.082, 1194.430)
+Shifted coords:  (1288.243, 988.990)
+IFC coords:      (21.931549, 14.361345)

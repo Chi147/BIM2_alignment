@@ -1,0 +1,80 @@
+[
+    {
+        "timestamp": "2026-02-12T10:38:56.774809",
+        "pdf_path": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/S\u00c3_HK\u00c3_TASO 1.KRS.pdf",
+        "ifc_path": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/Asikainen.ifc",
+        "ecc_affine_score": 0.46231649589795515,
+        "ecc_affine_warp": [
+            [
+                1.0311387777328491,
+                0.07280874252319336,
+                -91.04856872558594
+            ],
+            [
+                -0.16212143003940582,
+                1.2119932174682617,
+                -46.06901931762695
+            ]
+        ],
+        "ecc_euclidean_score": 0.4739837050639238,
+        "ecc_euclidean_warp": [
+            [
+                1.0,
+                7.207383987406502e-07,
+                -0.004313663579523563
+            ],
+            [
+                -7.207383987406502e-07,
+                1.0,
+                0.0006767304148525
+            ]
+        ],
+        "chamfer_metrics": {
+            "mean_px": 6.519226551055908,
+            "median_px": 0.9549999833106995,
+            "p90_px": 19.514299392700195,
+            "within_2px": 0.6112264029048258,
+            "within_5px": 0.7031281725386374,
+            "n_points": 379231
+        }
+    },
+    {
+        "timestamp": "2026-02-12T10:44:07.465444",
+        "pdf_path": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/S\u00c3_HK\u00c3_TASO 1.KRS.pdf",
+        "ifc_path": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/Asikainen.ifc",
+        "ecc_affine_score": 0.46231649589795515,
+        "ecc_affine_warp": [
+            [
+                1.0311387777328491,
+                0.07280874252319336,
+                -91.04856872558594
+            ],
+            [
+                -0.16212143003940582,
+                1.2119932174682617,
+                -46.06901931762695
+            ]
+        ],
+        "ecc_euclidean_score": 0.4739837050639238,
+        "ecc_euclidean_warp": [
+            [
+                1.0,
+                7.207383987406502e-07,
+                -0.004313663579523563
+            ],
+            [
+                -7.207383987406502e-07,
+                1.0,
+                0.0006767304148525
+            ]
+        ],
+        "chamfer_metrics": {
+            "mean_px": 6.519226551055908,
+            "median_px": 0.9549999833106995,
+            "p90_px": 19.514299392700195,
+            "within_2px": 0.6112264029048258,
+            "within_5px": 0.7031281725386374,
+            "n_points": 379231
+        }
+    }
+]

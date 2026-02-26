@@ -1,0 +1,15 @@
+{
+  "version": "0.1",
+  "type": "Similarity2D",
+  "storeyId": "ifc_storey_express_id",
+  "scale": 0.04952369583586371,
+  "rotationRad": 0.0635964784361051,
+  "translation": {
+    "x": 2.4449937695475157,
+    "y": -22.192152930788353
+  },
+  "error": {
+    "rmse": 0.8165192706184554,
+    "max": 1.0800682144562097
+  }
+}
