@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from pdf_edges import extract_pdf_edges
-from ifc_edges import extract_ifc_plan_edges, flip_ifc_segments
+from pdf_grid_removal import extract_pdf_edges
+from ifc_edges_floor2 import extract_ifc_plan_edges, flip_ifc_segments
 import json
 from datetime import datetime
 
@@ -176,27 +176,38 @@ def apply_T(T, x, y):
     return float(p[0]/p[2]), float(p[1]/p[2])
 
 def main(pdf_path, ifc_path):
-    # 1) Extract segments (PDF extractor now includes your tick-logic cleanup)
+    # 1) Use the result exactly as it comes out
     pdf_segs, pdf_meta = extract_pdf_edges(pdf_path)
     ifc_segs, ifc_meta = extract_ifc_plan_edges(ifc_path)
 
-    # Optional: if IFC looks upside-down in raster output, uncomment:
-    # ifc_segs = flip_ifc_segments(ifc_segs, ifc_meta)
+    # 2) Rasterize using the BBox defined in the extraction
+    # No more manual adjustments here—just follow the meta
+    pdf_img, A_pdf = segments_to_image(
+        pdf_segs,
+        pdf_meta.bbox[2], 
+        pdf_meta.bbox[3],
+        margin=20, # Small margin for safety
+        return_matrix=True
+    )
+    
+    ifc_img, A_ifc = segments_to_image(
+        ifc_segs, 
+        ifc_meta.bbox[2], 
+        ifc_meta.bbox[3], 
+        margin=20, 
+        return_matrix=True
+    )
 
-    # 2) Rasterize both to the same pixel canvas (this normalizes scale)
-    pdf_img, A_pdf = segments_to_image(pdf_segs, pdf_meta.bbox[2], pdf_meta.bbox[3], return_matrix=True)
-    ifc_img, A_ifc = segments_to_image(ifc_segs, ifc_meta.bbox[2], ifc_meta.bbox[3], return_matrix=True)
-
-
-    # 3) Light PDF cleanup (specks/text)
-    pdf_img = remove_small_components(pdf_img, min_area=60)
-
-    # Save inputs for inspection
+    # --- CRITICAL: NO CLEANING HERE ---
+    # We trust the extract_pdf_edges result. 
+    # Do NOT call remove_small_components(pdf_img)
+    
+    # Save inputs for inspection to see exactly what is being sent to ECC
     cv2.imwrite("01_pdf_raster.png", pdf_img)
     cv2.imwrite("02_ifc_raster.png", ifc_img)
 
-    # 4) Dilation helps ECC on thin line drawings
-    k = np.ones((3, 3), np.uint8)
+    # 4) Dilation helps thin lines overlap during search
+    k = np.ones((5, 5), np.uint8)
     pdf_for = cv2.dilate(pdf_img, k, iterations=1)
     ifc_for = cv2.dilate(ifc_img, k, iterations=1)
 

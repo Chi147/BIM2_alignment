@@ -170,7 +170,7 @@ if __name__ == "__main__":
             plt.axis('equal')
             plt.grid(True, linestyle='--', alpha=0.6)
             
-            output_path = "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_v2/ifc_debug_img/ifc_extraction_debugnew.png"
+            output_path = "/home/chidepnek/RoboAI/BIM/BIM2/backend/src/reg_3_opencv/working1floor/ifc_test.png"
             plt.savefig(output_path, dpi=200)
             plt.close() # Important to free memory
             

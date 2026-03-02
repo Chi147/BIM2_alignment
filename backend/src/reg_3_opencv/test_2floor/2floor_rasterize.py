@@ -162,15 +162,15 @@ def process_floor(floor_config, ifc_path, output_dir):
 
 if __name__ == "__main__":
     # CONFIGURATION: Update these paths
-    IFC_FILE = "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/test_2floor/Asikainen.ifc"
+    IFC_FILE = "/home/chidepnek/RoboAI/BIM/BIM2/backend/src/reg_3_opencv/test_2floor/Asikainen.ifc"
 
     OUTPUT_FOLDER = "alignment_debug"
 
     if not os.path.exists(OUTPUT_FOLDER): os.makedirs(OUTPUT_FOLDER)
 
     FLOORS = [
-        {"name": "Floor_1", "pdf": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/test_2floor/SÃ_HKÃ_TASO 1.KRS.pdf", "floor_index": 0},
-        {"name": "Floor_2", "pdf": "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_3_opencv/test_2floor/SÃ_HKÃ_TASO 2.KRS.pdf", "floor_index": 1}
+        {"name": "Floor_1", "pdf": "/home/chidepnek/RoboAI/BIM/BIM2/backend/src/reg_3_opencv/test_2floor/SÃ_HKÃ_TASO 1.KRS.pdf", "floor_index": 0},
+        {"name": "Floor_2", "pdf": "/home/chidepnek/RoboAI/BIM/BIM2/backend/src/reg_3_opencv/test_2floor/SÃ_HKÃ_TASO 2.KRS.pdf", "floor_index": 1}
     ]
 
     all_results = []

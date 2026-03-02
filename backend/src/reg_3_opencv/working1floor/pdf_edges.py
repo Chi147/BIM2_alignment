@@ -1,8 +1,11 @@
 import pdfplumber
 import numpy as np
 import cv2
+
 import matplotlib
+matplotlib.use("Agg")          # ✅ add this BEFORE importing pyplot
 import matplotlib.pyplot as plt
+
 from sklearn.cluster import DBSCAN
 from typing import List, Tuple, Optional
 from dataclasses import dataclass
@@ -291,7 +294,7 @@ if __name__ == "__main__":
             plt.axis('equal')
             plt.grid(True, linestyle='--', alpha=0.6)
 
-            output_path = "/home/chidepnek/RoboAI/BIM/BOMBIM/BIM2/backend/src/reg_v2/pdf_debug_img/test.png"
+            output_path = "/home/chidepnek/RoboAI/BIM/BIM2/backend/src/reg_3_opencv/working1floor/test.png"
             plt.savefig(output_path, dpi=200)
             plt.close()
 
