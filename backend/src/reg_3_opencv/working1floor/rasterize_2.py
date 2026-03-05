@@ -1,19 +1,32 @@
 import cv2
 import numpy as np
-
-from pdf_grid_removal import extract_pdf_edges
-from ifc_edges_floor2 import extract_ifc_plan_edges, flip_ifc_segments
 import json
 from datetime import datetime
 
+from pdf_edges import extract_pdf_edges
+from ifc_edges_floor1 import extract_ifc_plan_edges, flip_ifc_segments
 
-def segments_to_image(segments, bbox_w, bbox_h, out_size=2048, thickness=2, margin=10, return_matrix=False):
+
+def segments_to_image(
+    segments,
+    bbox_w,
+    bbox_h,
+    out_size=2048,
+    thickness=2,
+    margin=10,
+    return_matrix=False
+):
+    """
+    Rasterize Y-up segments into an image. Produces matrix A such that:
+      [px, py, 1]^T = A @ [x, y, 1]^T
+    where (x,y) are in the segment coordinate system (Y-up),
+    and (px,py) are image pixels (Y-down).
+    """
     img = np.zeros((out_size, out_size), dtype=np.uint8)
 
     sx = (out_size - 2 * margin) / max(bbox_w, 1e-6)
     sy = (out_size - 2 * margin) / max(bbox_h, 1e-6)
 
-    # Map (x, y, 1) in source coords -> (px, py, 1) in image pixels
     # px = margin + sx*x
     # py = margin + sy*(bbox_h - y) = margin + sy*bbox_h - sy*y
     A = np.array([
@@ -23,9 +36,16 @@ def segments_to_image(segments, bbox_w, bbox_h, out_size=2048, thickness=2, marg
     ], dtype=np.float64)
 
     for x1, y1, x2, y2 in segments:
-        p1 = A @ np.array([x1, y1, 1.0])
-        p2 = A @ np.array([x2, y2, 1.0])
-        cv2.line(img, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), 255, thickness, lineType=cv2.LINE_AA)
+        p1 = A @ np.array([x1, y1, 1.0], dtype=np.float64)
+        p2 = A @ np.array([x2, y2, 1.0], dtype=np.float64)
+        cv2.line(
+            img,
+            (int(p1[0]), int(p1[1])),
+            (int(p2[0]), int(p2[1])),
+            255,
+            thickness,
+            lineType=cv2.LINE_AA
+        )
 
     if return_matrix:
         return img, A
@@ -34,8 +54,15 @@ def segments_to_image(segments, bbox_w, bbox_h, out_size=2048, thickness=2, marg
 
 def ecc_align(moving, fixed, motion=cv2.MOTION_AFFINE, n_iter=3000):
     """
-    Find warp that maps 'moving' onto 'fixed' using ECC maximization.
-    Returns (warp_matrix, aligned_moving, ecc_score)
+    Find warp that aligns 'moving' onto 'fixed' using ECC maximization.
+
+    IMPORTANT detail:
+    We apply warpAffine(..., flags=WARP_INVERSE_MAP), matching the common OpenCV ECC usage.
+    In this setup, the returned warp behaves like a mapping from FIXED -> MOVING
+    (destination -> source) in pixel space.
+
+    Returns:
+      warp (2x3), aligned_moving (same size as fixed), ecc_score
     """
     moving_f = moving.astype(np.float32) / 255.0
     fixed_f = fixed.astype(np.float32) / 255.0
@@ -54,31 +81,6 @@ def ecc_align(moving, fixed, motion=cv2.MOTION_AFFINE, n_iter=3000):
     )
     return warp, aligned, cc
 
-
-def alignment_error_chamfer(pdf_edges_u8, ifc_edges_warped_u8):
-    """
-    Measures how far IFC warped edge pixels are from the nearest PDF edge pixel.
-    Lower is better. 'within_2px'/'within_5px' higher is better.
-    """
-    pdf_bin = (pdf_edges_u8 > 0).astype(np.uint8)
-    ifc_bin = (ifc_edges_warped_u8 > 0).astype(np.uint8)
-
-    dist = cv2.distanceTransform(1 - pdf_bin, cv2.DIST_L2, 3)
-
-    ys, xs = np.where(ifc_bin > 0)
-    if len(xs) == 0:
-        return None
-
-    d = dist[ys, xs]
-
-    return {
-        "mean_px": float(np.mean(d)),
-        "median_px": float(np.median(d)),
-        "p90_px": float(np.percentile(d, 90)),
-        "within_2px": float(np.mean(d <= 2.0)),
-        "within_5px": float(np.mean(d <= 5.0)),
-        "n_points": int(len(d)),
-    }
 
 def chamfer_ifc_to_pdf_trimmed(pdf_edges_u8, ifc_edges_u8, trim_q=90):
     """
@@ -126,31 +128,101 @@ def remove_small_components(bin_img_u8, min_area=50):
             out[labels == i] = 255
     return out
 
+
+def warp2x3_to_3x3(w2x3):
+    W = np.eye(3, dtype=np.float64)
+    W[:2, :] = np.asarray(w2x3, dtype=np.float64)
+    return W
+
+
+def shift_matrix(tx, ty):
+    """
+    Homogeneous translation matrix:
+      [x',y',1]^T = S @ [x,y,1]^T
+    """
+    return np.array([
+        [1.0, 0.0, float(tx)],
+        [0.0, 1.0, float(ty)],
+        [0.0, 0.0, 1.0]
+    ], dtype=np.float64)
+
+
 def save_alignment_report(
-    pdf_path, ifc_path,
-    score_aff, warp_aff,
-    score_euc, warp_euc,
+    *,
+    pdf_path,
+    ifc_path,
+    pdf_meta,
+    ifc_meta,
+    out_size,
+    margin,
+    score_aff,
+    warp_aff,
+    score_euc,
+    warp_euc,
     metrics,
-    A_pdf=None, A_ifc=None, W_pix=None,
-    T_pdf_to_ifc=None, T_ifc_to_pdf=None,
+    A_pdf,
+    A_ifc,
+    W_pdfPix_to_ifcPix,
+    T_ifcLocal_to_pdfLocal,
+    T_ifcWorld_to_pdfPage,
     output_file="alignment_results.json"
 ):
+    """
+    We save BOTH:
+      - local<->local transforms (debug)
+      - world<->page transforms (what your viewer should use)
+    """
     report = {
         "timestamp": datetime.now().isoformat(),
         "pdf_path": pdf_path,
         "ifc_path": ifc_path,
+
+        "config": {
+            "out_size": int(out_size),
+            "margin": int(margin),
+        },
+
+        # ECC results
         "ecc_affine_score": float(score_aff),
-        "ecc_affine_warp": warp_aff.tolist(),
+        "ecc_affine_warp": np.asarray(warp_aff, dtype=float).tolist(),
         "ecc_euclidean_score": float(score_euc),
-        "ecc_euclidean_warp": warp_euc.tolist(),
+        "ecc_euclidean_warp": np.asarray(warp_euc, dtype=float).tolist(),
 
         "metrics": metrics,
 
-        "A_pdf": A_pdf.tolist() if A_pdf is not None else None,
-        "A_ifc": A_ifc.tolist() if A_ifc is not None else None,
-        "W_pix": W_pix.tolist() if W_pix is not None else None,
-        "T_pdf_to_ifc": T_pdf_to_ifc.tolist() if T_pdf_to_ifc is not None else None,
-        "T_ifc_to_pdf": T_ifc_to_pdf.tolist() if T_ifc_to_pdf is not None else None,
+        # Rasterization matrices (segment coords -> 2048 px coords)
+        "A_pdf": np.asarray(A_pdf, dtype=float).tolist(),
+        "A_ifc": np.asarray(A_ifc, dtype=float).tolist(),
+
+        # Combined pixel-space warp (FIXED/PDF pixels -> MOVING/IFC pixels)
+        # (This is what ECC warping used internally with WARP_INVERSE_MAP.)
+        "W_pdfPix_to_ifcPix": np.asarray(W_pdfPix_to_ifcPix, dtype=float).tolist(),
+
+        # DEBUG: IFC local -> PDF local (both shifted-to-origin segment spaces)
+        "T_ifcLocal_to_pdfLocal": np.asarray(T_ifcLocal_to_pdfLocal, dtype=float).tolist(),
+
+        # VIEWER: IFC world -> PDF page points (Y-up)
+        "T_ifcWorld_to_pdfPage": np.asarray(T_ifcWorld_to_pdfPage, dtype=float).tolist(),
+        "T_pdfPage_to_ifcWorld": np.linalg.inv(T_ifcWorld_to_pdfPage).astype(float).tolist(),
+
+        # Metadata needed for correct placement
+        "pdf_meta": {
+            "method": getattr(pdf_meta, "method", "unknown"),
+            "page_width_pt": float(pdf_meta.page_width),
+            "page_height_pt": float(pdf_meta.page_height),
+            "bbox": [float(x) for x in pdf_meta.bbox],
+            "shift": [float(pdf_meta.shift[0]), float(pdf_meta.shift[1])],
+            "coord_system": {"units": "pt", "y_axis": "up"},
+            # viewer hint: to draw on a rendered PDF (y-down), do:
+            #   y_screen = page_height_pt - y_page
+        },
+        "ifc_meta": {
+            # if your IfcEdgesMeta has these fields; if not, remove safely
+            "bbox": [float(x) for x in ifc_meta.bbox],
+            "shift": [float(ifc_meta.shift[0]), float(ifc_meta.shift[1])],
+            "unit_name": getattr(ifc_meta, "unit_name", "unknown"),
+            "unit_scale_to_m": float(getattr(ifc_meta, "unit_scale_to_m", 1.0)),
+        },
     }
 
     try:
@@ -166,76 +238,78 @@ def save_alignment_report(
 
     print(f"\nSaved alignment report to {output_file}")
 
-def warp2x3_to_3x3(w2x3):
-    W = np.eye(3, dtype=np.float64)
-    W[:2, :] = w2x3.astype(np.float64)
-    return W
 
-def apply_T(T, x, y):
-    p = T @ np.array([x, y, 1.0], dtype=np.float64)
-    return float(p[0]/p[2]), float(p[1]/p[2])
-
-def main(pdf_path, ifc_path):
-    # 1) Use the result exactly as it comes out
+def main(pdf_path, ifc_path, out_size=2048, margin=10):
+    # 1) Extract segments and metas
     pdf_segs, pdf_meta = extract_pdf_edges(pdf_path)
     ifc_segs, ifc_meta = extract_ifc_plan_edges(ifc_path)
 
-    # 2) Rasterize using the BBox defined in the extraction
-    # No more manual adjustments here—just follow the meta
-    pdf_img, A_pdf = segments_to_image(
-        pdf_segs,
-        pdf_meta.bbox[2], 
-        pdf_meta.bbox[3],
-        margin=20, # Small margin for safety
-        return_matrix=True
-    )
-    
-    ifc_img, A_ifc = segments_to_image(
-        ifc_segs, 
-        ifc_meta.bbox[2], 
-        ifc_meta.bbox[3], 
-        margin=20, 
-        return_matrix=True
-    )
+    # Optional flip if needed
+    # ifc_segs = flip_ifc_segments(ifc_segs, ifc_meta)
 
-    # --- CRITICAL: NO CLEANING HERE ---
-    # We trust the extract_pdf_edges result. 
-    # Do NOT call remove_small_components(pdf_img)
-    
-    # Save inputs for inspection to see exactly what is being sent to ECC
+    # 2) Rasterize both to same canvas
+    pdf_img, A_pdf = segments_to_image(pdf_segs, pdf_meta.bbox[2], pdf_meta.bbox[3],
+                                       out_size=out_size, margin=margin, return_matrix=True)
+    ifc_img, A_ifc = segments_to_image(ifc_segs, ifc_meta.bbox[2], ifc_meta.bbox[3],
+                                       out_size=out_size, margin=margin, return_matrix=True)
+
+    # 3) Clean PDF specks
+    pdf_img = remove_small_components(pdf_img, min_area=60)
+
+    # Save inputs for inspection
     cv2.imwrite("01_pdf_raster.png", pdf_img)
     cv2.imwrite("02_ifc_raster.png", ifc_img)
 
-    # 4) Dilation helps thin lines overlap during search
-    k = np.ones((5, 5), np.uint8)
+    # 4) Dilation helps ECC
+    k = np.ones((3, 3), np.uint8)
     pdf_for = cv2.dilate(pdf_img, k, iterations=1)
     ifc_for = cv2.dilate(ifc_img, k, iterations=1)
 
-    # 5) Align with AFFINE first (more robust)
+    # 5) ECC affine alignment (robust)
     warp_aff, ifc_aff, score_aff = ecc_align(ifc_for, pdf_for, motion=cv2.MOTION_AFFINE)
     print("ECC (AFFINE) score:", score_aff)
     print("AFFINE warp:\n", warp_aff)
 
-    # 6) Optional refinement to RIGID (recommended once things look aligned)
-    # This prevents weird stretching/shearing from affine.
+    # 6) ECC euclidean refinement (small correction)
     warp_euc, ifc_rigid, score_euc = ecc_align(ifc_aff, pdf_for, motion=cv2.MOTION_EUCLIDEAN)
     print("\nECC (EUCLIDEAN) score:", score_euc)
     print("EUCLIDEAN warp:\n", warp_euc)
 
-    W_pix = warp2x3_to_3x3(warp_euc)
+    # =========================
+    # IMPORTANT: Correct warp composition
+    # =========================
+    # Because we apply warpAffine with WARP_INVERSE_MAP, each warp behaves as:
+    #   FIXED (PDF pixels) -> MOVING pixels (IFC pixels)
+    #
+    # Stage 1: PDF_pix -> IFC_for_pix via warp_aff
+    # Stage 2: PDF_pix -> IFC_aff_pix via warp_euc
+    #
+    # And IFC_aff_pix is sampled from IFC_for_pix using warp_aff.
+    #
+    # So the combined mapping PDF_pix -> IFC_for_pix is:
+    #   W_pdfPix_to_ifcPix = W_aff @ W_euc
+    W_aff = warp2x3_to_3x3(warp_aff)
+    W_euc = warp2x3_to_3x3(warp_euc)
+    W_pdfPix_to_ifcPix = W_aff @ W_euc
 
-    M_ifcPix_to_pdfPix = np.linalg.inv(W_pix)
+    # We want IFC_pix -> PDF_pix for coordinate transforms:
+    M_ifcPix_to_pdfPix = np.linalg.inv(W_pdfPix_to_ifcPix)
 
-    # Build final coordinate transforms
-    T_ifc_to_pdf = np.linalg.inv(A_pdf) @ M_ifcPix_to_pdfPix @ A_ifc
-    T_pdf_to_ifc = np.linalg.inv(T_ifc_to_pdf)
+    # Local (shifted-to-origin) IFC -> Local (shifted-to-origin) PDF
+    T_ifcLocal_to_pdfLocal = np.linalg.inv(A_pdf) @ M_ifcPix_to_pdfPix @ A_ifc
 
+    # Wrap shifts to make VIEWER transform:
+    # IFC world -> IFC local: subtract ifc_meta.shift
+    # PDF local -> PDF page: add pdf_meta.shift
+    S_ifcWorld_to_local = shift_matrix(-float(ifc_meta.shift[0]), -float(ifc_meta.shift[1]))
+    S_pdfLocal_to_page  = shift_matrix( float(pdf_meta.shift[0]),  float(pdf_meta.shift[1]))
 
-    # Use rigid result for outputs/metrics
+    T_ifcWorld_to_pdfPage = S_pdfLocal_to_page @ T_ifcLocal_to_pdfLocal @ S_ifcWorld_to_local
+
+    # 7) Quantitative check (use final warped raster)
     ifc_aligned = ifc_rigid
-
-    # 7) Quantitative check (Chamfer distance)
     metrics = chamfer_ifc_to_pdf_trimmed(pdf_img, ifc_aligned, trim_q=90)
+
     print("\nChamfer alignment metrics:")
     if metrics is None:
         print("No IFC pixels found after warp.")
@@ -248,15 +322,27 @@ def main(pdf_path, ifc_path):
     overlay = cv2.merge([pdf_img, ifc_aligned, np.zeros_like(pdf_img)])
     cv2.imwrite("04_overlay.png", overlay)
 
+    # 9) Save JSON report (viewer-ready)
     save_alignment_report(
-    pdf_path, ifc_path,
-    score_aff, warp_aff,
-    score_euc, warp_euc,
-    metrics,
-    A_pdf=A_pdf, A_ifc=A_ifc, W_pix=W_pix,
-    T_pdf_to_ifc=T_pdf_to_ifc, T_ifc_to_pdf=T_ifc_to_pdf,
-    output_file="alignment_results.json"
-)
+        pdf_path=pdf_path,
+        ifc_path=ifc_path,
+        pdf_meta=pdf_meta,
+        ifc_meta=ifc_meta,
+        out_size=out_size,
+        margin=margin,
+        score_aff=score_aff,
+        warp_aff=warp_aff,
+        score_euc=score_euc,
+        warp_euc=warp_euc,
+        metrics=metrics,
+        A_pdf=A_pdf,
+        A_ifc=A_ifc,
+        W_pdfPix_to_ifcPix=W_pdfPix_to_ifcPix,
+        T_ifcLocal_to_pdfLocal=T_ifcLocal_to_pdfLocal,
+        T_ifcWorld_to_pdfPage=T_ifcWorld_to_pdfPage,
+        output_file="alignment_results.json"
+    )
+
 
 if __name__ == "__main__":
     import sys
