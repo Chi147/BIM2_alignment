@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 
 import ifcopenshell
 
-from ifc_storeys import get_storeys_with_z, slugify
-import ifc_edges  # your existing file
+from BIM2.alignment.reg_3_opencv.working1floor.ifc_storeys import get_storeys_with_z, slugify
+import BIM2.alignment.reg_3_opencv.working1floor.ifc_edges as ifc_edges  # your existing file
 
 def sample_geometry_z_range(ifc_path: str, include_types=None, max_elements_per_type: int = 200):
     import numpy as np

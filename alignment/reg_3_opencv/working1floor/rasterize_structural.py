@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from pdf_edges import extract_pdf_edges
-from ifc_edges_floor1 import extract_ifc_plan_edges, flip_ifc_segments
+from BIM2.alignment.reg_3_opencv.working1floor.pdf_edges import extract_pdf_edges
+from BIM2.alignment.reg_3_opencv.working1floor.ifc_edges_floor1 import extract_ifc_plan_edges, flip_ifc_segments
 import json
 from datetime import datetime
 

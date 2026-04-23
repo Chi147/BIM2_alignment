@@ -2,8 +2,8 @@ import json
 import sys
 from pathlib import Path
 
-from plan_extract_vector import extract_plan_anchors_vector
-from plan_extract_scan import extract_plan_anchors_scan
+from BIM2.alignment.reg_v1.plan_extract_vector import extract_plan_anchors_vector
+from BIM2.alignment.reg_v1.plan_extract_scan import extract_plan_anchors_scan
 
 
 def main():

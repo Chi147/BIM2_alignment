@@ -1,6 +1,6 @@
 import fitz
 import numpy as np
-from pdf_edges import extract_pdf_edges
+from BIM2.alignment.reg_3_opencv.working1floor.pdf_edges import extract_pdf_edges
 
 pdf_path = "/home/chidepnek/RoboAI/BIM/BIM2/backend/src/reg_3_opencv/test_2floor/SÃ_HKÃ_TASO 1.KRS.pdf"
 

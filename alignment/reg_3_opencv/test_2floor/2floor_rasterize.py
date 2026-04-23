@@ -5,8 +5,8 @@ import sys
 import os
 from datetime import datetime
 # Import your custom modules
-from pdf_edges import extract_pdf_edges
-from ifc_edges import extract_ifc_plan_edges  # Ensure this script has the floor_index logic
+from BIM2.alignment.reg_3_opencv.test_2floor.pdf_edges import extract_pdf_edges
+from BIM2.alignment.reg_3_opencv.test_2floor.ifc_edges import extract_ifc_plan_edges  # Ensure this script has the floor_index logic
 
 # --- Core Alignment Functions ---
 

@@ -5,8 +5,8 @@ import json
 import os
 
 # Import your custom modules
-from pdf_edges import extract_pdf_edges
-from ifc_edges import extract_ifc_plan_edges  # must support floor_index
+from BIM2.alignment.reg_3_opencv.test_2floor.pdf_edges import extract_pdf_edges
+from BIM2.alignment.reg_3_opencv.test_2floor.ifc_edges import extract_ifc_plan_edges  # must support floor_index
 
 # ----------------------------
 # Helpers

@@ -4,8 +4,8 @@ import json
 from scipy.optimize import minimize
 from pdf_edges import extract_pdf_edges
 from ifc_edges import extract_ifc_plan_edges, flip_ifc_segments
-from score import create_pdf_distance_map, score_alignment
-from hypothesis_generator import generate_hypotheses, get_base_scale
+from BIM2.alignment.reg_v2.score import create_pdf_distance_map, score_alignment
+from BIM2.alignment.reg_v2.hypothesis_generator import generate_hypotheses, get_base_scale
 
 def normalize_to_origin(segments):
     """Brings the IFC house to (0,0) so the 'Shift' doesn't ruin the math."""

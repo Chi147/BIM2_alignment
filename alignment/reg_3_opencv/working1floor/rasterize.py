@@ -1,34 +1,29 @@
 import cv2
 import numpy as np
 
-from pdf_edges import extract_pdf_edges
-from ifc_edges_floor1 import extract_ifc_plan_edges, flip_ifc_segments
+from BIM2.alignment.reg_3_opencv.working1floor.pdf_edges import extract_pdf_edges
+from BIM2.alignment.reg_3_opencv.working1floor.ifc_edges import extract_ifc_plan_edges, flip_ifc_segments
 import json
 from datetime import datetime
 
 
-def segments_to_image(segments, bbox_w, bbox_h, out_size=2048, thickness=2, margin=10, return_matrix=False):
+def segments_to_image(segments, bbox_w, bbox_h, out_size=2048, thickness=2, margin=10):
+    """
+    Draw vector segments into a fixed-size binary raster (0/255).
+    IMPORTANT: flips Y because original coords are y-up while images are y-down.
+    """
     img = np.zeros((out_size, out_size), dtype=np.uint8)
 
     sx = (out_size - 2 * margin) / max(bbox_w, 1e-6)
     sy = (out_size - 2 * margin) / max(bbox_h, 1e-6)
 
-    # Map (x, y, 1) in source coords -> (px, py, 1) in image pixels
-    # px = margin + sx*x
-    # py = margin + sy*(bbox_h - y) = margin + sy*bbox_h - sy*y
-    A = np.array([
-        [sx,  0,  margin],
-        [0,  -sy, margin + sy * bbox_h],
-        [0,   0,  1.0]
-    ], dtype=np.float64)
-
     for x1, y1, x2, y2 in segments:
-        p1 = A @ np.array([x1, y1, 1.0])
-        p2 = A @ np.array([x2, y2, 1.0])
-        cv2.line(img, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), 255, thickness, lineType=cv2.LINE_AA)
+        px1 = int(margin + x1 * sx)
+        py1 = int(margin + (bbox_h - y1) * sy)
+        px2 = int(margin + x2 * sx)
+        py2 = int(margin + (bbox_h - y2) * sy)
+        cv2.line(img, (px1, py1), (px2, py2), 255, thickness, lineType=cv2.LINE_AA)
 
-    if return_matrix:
-        return img, A
     return img
 
 
@@ -80,36 +75,6 @@ def alignment_error_chamfer(pdf_edges_u8, ifc_edges_warped_u8):
         "n_points": int(len(d)),
     }
 
-def chamfer_ifc_to_pdf_trimmed(pdf_edges_u8, ifc_edges_u8, trim_q=90):
-    """
-    One-way IFC->PDF Chamfer, robust to PDF clutter and some unmatched IFC edges.
-    Keeps the best trim_q% distances (drops worst 100-trim_q%).
-    """
-    pdf_bin = (pdf_edges_u8 > 0).astype(np.uint8)
-    ifc_bin = (ifc_edges_u8 > 0).astype(np.uint8)
-
-    dt = cv2.distanceTransform(1 - pdf_bin, cv2.DIST_L2, 3)
-    ys, xs = np.where(ifc_bin > 0)
-    if len(xs) == 0:
-        return None
-
-    d = dt[ys, xs]
-    cutoff = np.percentile(d, trim_q)
-    d_trim = d[d <= cutoff]
-
-    return {
-        "type": "ifc_to_pdf_trimmed_chamfer",
-        "trim_q": float(trim_q),
-        "mean_px": float(np.mean(d_trim)),
-        "median_px": float(np.median(d_trim)),
-        "p90_px": float(np.percentile(d_trim, 90)),
-        "within_2px": float(np.mean(d_trim <= 2.0)),
-        "within_5px": float(np.mean(d_trim <= 5.0)),
-        "n_points": int(len(d)),
-        "n_used": int(len(d_trim)),
-        "cutoff_px": float(cutoff),
-    }
-
 
 def remove_small_components(bin_img_u8, min_area=50):
     """
@@ -127,36 +92,31 @@ def remove_small_components(bin_img_u8, min_area=50):
     return out
 
 def save_alignment_report(
-    pdf_path, ifc_path,
-    score_aff, warp_aff,
-    score_euc, warp_euc,
-    metrics,
-    A_pdf=None, A_ifc=None, W_pix=None,
-    T_pdf_to_ifc=None, T_ifc_to_pdf=None,
+    pdf_path,
+    ifc_path,
+    score_aff,
+    warp_aff,
+    score_euc,
+    warp_euc,
+    chamfer_metrics,
     output_file="alignment_results.json"
 ):
     report = {
         "timestamp": datetime.now().isoformat(),
         "pdf_path": pdf_path,
         "ifc_path": ifc_path,
-        "ecc_affine_score": float(score_aff),
+        "ecc_affine_score": score_aff,
         "ecc_affine_warp": warp_aff.tolist(),
-        "ecc_euclidean_score": float(score_euc),
+        "ecc_euclidean_score": score_euc,
         "ecc_euclidean_warp": warp_euc.tolist(),
-
-        "metrics": metrics,
-
-        "A_pdf": A_pdf.tolist() if A_pdf is not None else None,
-        "A_ifc": A_ifc.tolist() if A_ifc is not None else None,
-        "W_pix": W_pix.tolist() if W_pix is not None else None,
-        "T_pdf_to_ifc": T_pdf_to_ifc.tolist() if T_pdf_to_ifc is not None else None,
-        "T_ifc_to_pdf": T_ifc_to_pdf.tolist() if T_ifc_to_pdf is not None else None,
+        "chamfer_metrics": chamfer_metrics
     }
 
+    # append mode if file exists
     try:
         with open(output_file, "r") as f:
             data = json.load(f)
-    except Exception:
+    except:
         data = []
 
     data.append(report)
@@ -166,14 +126,6 @@ def save_alignment_report(
 
     print(f"\nSaved alignment report to {output_file}")
 
-def warp2x3_to_3x3(w2x3):
-    W = np.eye(3, dtype=np.float64)
-    W[:2, :] = w2x3.astype(np.float64)
-    return W
-
-def apply_T(T, x, y):
-    p = T @ np.array([x, y, 1.0], dtype=np.float64)
-    return float(p[0]/p[2]), float(p[1]/p[2])
 
 def main(pdf_path, ifc_path):
     # 1) Extract segments (PDF extractor now includes your tick-logic cleanup)
@@ -184,9 +136,12 @@ def main(pdf_path, ifc_path):
     # ifc_segs = flip_ifc_segments(ifc_segs, ifc_meta)
 
     # 2) Rasterize both to the same pixel canvas (this normalizes scale)
-    pdf_img, A_pdf = segments_to_image(pdf_segs, pdf_meta.bbox[2], pdf_meta.bbox[3], return_matrix=True)
-    ifc_img, A_ifc = segments_to_image(ifc_segs, ifc_meta.bbox[2], ifc_meta.bbox[3], return_matrix=True)
-
+    pdf_img = segments_to_image(
+        pdf_segs, pdf_meta.bbox[2], pdf_meta.bbox[3], out_size=2048, thickness=2
+    )
+    ifc_img = segments_to_image(
+        ifc_segs, ifc_meta.bbox[2], ifc_meta.bbox[3], out_size=2048, thickness=2
+    )
 
     # 3) Light PDF cleanup (specks/text)
     pdf_img = remove_small_components(pdf_img, min_area=60)
@@ -211,20 +166,11 @@ def main(pdf_path, ifc_path):
     print("\nECC (EUCLIDEAN) score:", score_euc)
     print("EUCLIDEAN warp:\n", warp_euc)
 
-    W_pix = warp2x3_to_3x3(warp_euc)
-
-    M_ifcPix_to_pdfPix = np.linalg.inv(W_pix)
-
-    # Build final coordinate transforms
-    T_ifc_to_pdf = np.linalg.inv(A_pdf) @ M_ifcPix_to_pdfPix @ A_ifc
-    T_pdf_to_ifc = np.linalg.inv(T_ifc_to_pdf)
-
-
     # Use rigid result for outputs/metrics
     ifc_aligned = ifc_rigid
 
     # 7) Quantitative check (Chamfer distance)
-    metrics = chamfer_ifc_to_pdf_trimmed(pdf_img, ifc_aligned, trim_q=90)
+    metrics = alignment_error_chamfer(pdf_img, ifc_aligned)
     print("\nChamfer alignment metrics:")
     if metrics is None:
         print("No IFC pixels found after warp.")
@@ -238,12 +184,13 @@ def main(pdf_path, ifc_path):
     cv2.imwrite("04_overlay.png", overlay)
 
     save_alignment_report(
-    pdf_path, ifc_path,
-    score_aff, warp_aff,
-    score_euc, warp_euc,
+    pdf_path,
+    ifc_path,
+    score_aff,
+    warp_aff,
+    score_euc,
+    warp_euc,
     metrics,
-    A_pdf=A_pdf, A_ifc=A_ifc, W_pix=W_pix,
-    T_pdf_to_ifc=T_pdf_to_ifc, T_ifc_to_pdf=T_ifc_to_pdf,
     output_file="alignment_results.json"
 )
 

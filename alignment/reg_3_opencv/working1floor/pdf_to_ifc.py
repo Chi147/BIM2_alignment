@@ -4,7 +4,7 @@ import fitz
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
-from pdf_edges import extract_pdf_edges
+from BIM2.alignment.reg_3_opencv.working1floor.pdf_edges import extract_pdf_edges
 
 # ---------------------------
 # Utilities
