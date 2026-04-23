@@ -53,7 +53,9 @@ page = doc[0]
 shape = page.new_shape()
 shape.draw_circle(fitz.Point(x_draw, y_draw), 8)
 draw_cross(shape, x_draw, y_draw, size=14)
-shape.finish(color=(1, 0, 0), width=2)
+
+# Black outline + cyan fill
+shape.finish(color=(0, 0, 0), fill=(0, 1, 1), width=2)
 shape.commit()
 
 out_pdf = "check_json_marked_door.pdf"

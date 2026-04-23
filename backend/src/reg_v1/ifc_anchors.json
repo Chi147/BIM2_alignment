@@ -1,0 +1,64 @@
+{
+  "version": "0.1",
+  "units": "meters",
+  "ifc": {
+    "file": "Asikainen.ifc",
+    "storeys": [
+      {
+        "storeyId": "21630",
+        "name": "Asemapiirros",
+        "elevationZ": 0.0
+      },
+      {
+        "storeyId": "21634",
+        "name": "1-kerros",
+        "elevationZ": 124100.0
+      },
+      {
+        "storeyId": "21640",
+        "name": "2-kerros",
+        "elevationZ": 127100.0
+      },
+      {
+        "storeyId": "21636",
+        "name": "Perustukset",
+        "elevationZ": 122700.0
+      },
+      {
+        "storeyId": "21660",
+        "name": "Vesikatto",
+        "elevationZ": 130400.0
+      }
+    ],
+    "anchors": [
+      {
+        "anchorId": "ifc:guid:3qiZvmxK2cG9uL5aMcnquD",
+        "expressId": 6856,
+        "guid": "3qiZvmxK2cG9uL5aMcnquD",
+        "type": "IFCCOLUMN",
+        "name": "Pilari-003",
+        "tag": "F4B23E70-ED40-A640-9E15-1645A6C74E0D",
+        "storeyId": "21634",
+        "world": {
+          "x": -728048.2266540538,
+          "y": 97577.929190979,
+          "z": 123119.97486628438
+        }
+      },
+      {
+        "anchorId": "ifc:guid:3HuHAHFvXmG88MrrBSzZoa",
+        "expressId": 6898,
+        "guid": "3HuHAHFvXmG88MrrBSzZoa",
+        "type": "IFCCOLUMN",
+        "name": "Pilari-003",
+        "tag": "D1E11291-3F98-7040-8216-D752DCF63CA4",
+        "storeyId": "21634",
+        "world": {
+          "x": -740180.3479480647,
+          "y": 85707.0916195669,
+          "z": 125900.0
+        }
+      }
+    ]
+  }
+}
